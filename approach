@@ -1,0 +1,42 @@
+approach
+
+read in a file containing logical addresses
+
+get the page number and hash into the TLB
+	if hit
+		print success message
+		concat frame number and offset
+		access physical memory, print out data at that PA
+	else
+		print failure
+		search in page table
+
+		if not in the page table - seg fault
+			print specific error
+
+			if free frame list is not empty (memory not full)
+				obtain frame from free frame list using first-fit
+				loads the same VA page from the BACKING_STORE.bin file and places it into the original frame or the first available
+				prints success message
+				update info in page table
+					page number is index of page table to be updated
+					update frame number at that index of the page table to the found frame
+				update TLB
+					if TLB full
+						use FIFO to update
+							update it by replacing old frame number at location the page number hased to with new frame number
+					else
+						update it by replacing old frame number at location the page number hased to with new frame number
+			else
+				handle page replacement using the LRU method
+				update page table for both incoming and outgoing pages
+				print success message including what frame the page is loaded into
+				update TLB using FIFO if necessary
+		else
+			get frame number and update TLB using FIFO if necessary
+
+after processing
+print contents of the page table
+print contents of page frames
+print page-fault rate
+print TLB hit-rate
