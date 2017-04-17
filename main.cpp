@@ -25,13 +25,9 @@ struct tlbPage
 };
 
 vector<int> timestamps(8);
-
 vector<bool> freeFrames(8);
-
 vector<page> pageTable(16);
-
 vector<tlbPage> tlb(4);
-
 queue<tlbPage> tlbQueue;
 
 char memory[8][256];
@@ -63,9 +59,9 @@ vector<int> parse(string fileName)
 
 void incTimestamps()
 {
-	for (auto &timestamp : timestamps)
+	for (int i = 0; i < timestamps.size(); ++i)
 	{
-		++timestamp;
+		++timestamps.at(i);
 	}
 }
 
@@ -112,7 +108,7 @@ bool checkTLBFull()
 
 void updateTLB(int frameNum, int pageNum)
 {
-	cout << "entering tlb update" << endl;
+	int tlbEntry = 0;
 	if(checkTLBFull())
 	{
 		// use FIFO to update
@@ -126,9 +122,10 @@ void updateTLB(int frameNum, int pageNum)
 			{
 				tlb.at(i).pageNum = pageNum;
 				tlb.at(i).frameNum = frameNum;
+				tlb.at(i).present = 1;
+				tlbEntry = i;
 			}
 		}
-
 		// update in queue
 		newPage.present = 1;
 		newPage.pageNum = pageNum;
@@ -146,6 +143,7 @@ void updateTLB(int frameNum, int pageNum)
 				tlb.at(i).present = 1;
 				tlb.at(i).pageNum = pageNum;
 				tlb.at(i).frameNum = frameNum;
+				tlbEntry = i;
 
 				// update in queue
 				tlbPage newPage;
@@ -153,9 +151,11 @@ void updateTLB(int frameNum, int pageNum)
 				newPage.pageNum = pageNum;
 				newPage.frameNum = frameNum;
 				tlbQueue.push(newPage);
+				break;
 			}
 		}
 	}
+	cout << "TLB LOAD: frame " << frameNum<< " containing page " << pageNum << " is stored in TLB entry " << tlbEntry << endl;
 }
 
 int findLRUFrame()
@@ -188,7 +188,7 @@ int firstFit()
 int main()
 {
 	vector<int> vAddresses = parse("addresses.txt");
-	
+
 	FILE * backFile;
 	backFile = fopen("BACKING_STORE.bin", "rb");
 	// load from .bin file into this frame
@@ -199,29 +199,29 @@ int main()
 	}
 
 	// READ IN ADDRESSES
-	for(auto &addr : vAddresses)
-	{		
-		int pageNum = addr >> 8;
+	for (int i = 0; i < vAddresses.size(); ++i)
+	{
+		int pageNum = vAddresses.at(i) >> 8;
 
 		// update timestamps for each reference
 		incTimestamps();
 
 		// TLB HIT
-		/*
-		int tlbIndex = searchTLB(pageNum);
+		int tlbIndex = searchTLB(pageNum);		
 		if (tlbIndex != 5)
 		{
 			cout << "TLB HIT: page " << pageNum << " is contained in frame " << tlb.at(tlbIndex).frameNum << ", found in TLB entry " << tlbIndex << endl;
+			resetTimestamp(tlb.at(tlbIndex).frameNum);
 		}
 		// TLB MISS
 		else
 		{
 			cout << "TLB MISS: page " << pageNum << " is not in the TLB" << endl;
-		*/
+		
 			// PAGE FAULT
 			if (!pageTable.at(pageNum).present)
 			{
-				cout << "PAGE FAULT: virtual address " << addr << " contained in page " << pageNum << " caused a page fault!" << endl;
+				cout << "PAGE FAULT: virtual address " << vAddresses.at(i) << " contained in page " << pageNum << " caused a page fault!" << endl;
 
 				int firstFrame = firstFit();
 
@@ -236,7 +236,7 @@ int main()
 					memcpy(&memory[frameToReplace], buffer, 256);
 					free (buffer);					
 
-					cout << "page " << pageNum << " is loaded into frame " << frameToReplace << endl;
+					cout << "LOADED: page " << pageNum << " is loaded into frame " << frameToReplace << endl;
 
 					// reset that frame's timestamp to 0
 					resetTimestamp(frameToReplace);
@@ -249,7 +249,7 @@ int main()
 					pageTable.at(pageNum).ptFrameNum = frameToReplace;
 
 					// update the TLB
-					// updateTLB(frameToReplace, pageNum);
+					updateTLB(frameToReplace, pageNum);
 				}
 				// FRAMES AVAILABLE
 				else
@@ -260,8 +260,8 @@ int main()
 					fread(buffer, 1, 256, backFile);
 					memcpy(&memory[firstFrame], buffer, 256);
 					free (buffer);
-					// rewind(backFile);
-					cout << "page " << pageNum << " is loaded into frame " << firstFrame << endl;
+					rewind(backFile);
+					cout << "LOADED: page " << pageNum << " is loaded into frame " << firstFrame << endl;
 
 					// reset that frame's timestamp to 0
 					resetTimestamp(firstFrame);
@@ -275,7 +275,7 @@ int main()
 
 					// UPDATE TLB
 
-					// updateTLB(firstFrame, pageNum);
+					updateTLB(firstFrame, pageNum);
 				}
 
 			}
@@ -283,17 +283,17 @@ int main()
 			else
 			{
 				resetTimestamp(pageTable.at(pageNum).ptFrameNum);
-				cout << "page " << pageNum << " is contained in frame " << pageTable.at(pageNum).ptFrameNum << endl;
-
+				cout << "FOUND: page " << pageNum << " is contained in frame " << pageTable.at(pageNum).ptFrameNum << endl;
 				// update TLB
-				// updateTLB(tlb.at(tlbIndex).frameNum, pageNum);
+				updateTLB(pageTable.at(pageNum).ptFrameNum, pageNum);
 			}
-			cout << endl;
-		//}
+		}
+		cout << endl;
 	}
 	fclose(backFile);
-	//backFile.close();
 
+	cout << "Total address references: " << vAddresses.size() << endl;
+	cout << "TLB Hits: ";
 	// print contents of page table
 	// print contents of page frames
 	// print page-fault rate
