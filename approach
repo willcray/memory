@@ -16,7 +16,7 @@ get the page number and hash into the TLB
 
 			if free frame list is not empty (memory not full)
 				obtain frame from free frame list using first-fit
-				loads the same VA page from the BACKING_STORE.bin file and places it into the original frame or the first available
+				loads the same VA page from the BACKING_STORE.bin file and places it into the first available
 				prints success message
 				update info in page table
 					page number is index of page table to be updated
@@ -28,7 +28,7 @@ get the page number and hash into the TLB
 					else
 						update it by replacing old frame number at location the page number hased to with new frame number
 			else
-				handle page replacement using the LRU method
+				handle page replacement using the LRU method22
 				update page table for both incoming and outgoing pages
 				print success message including what frame the page is loaded into
 				update TLB using FIFO if necessary
