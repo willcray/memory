@@ -5,13 +5,12 @@ read in a file containing logical addresses
 get the page number and hash into the TLB
 	if hit
 		print success message
-		concat frame number and offset
 		access physical memory, print out data at that PA
 	else
 		print failure
 		search in page table
 
-		if not in the page table - seg fault
+		if not in the page table - page fault
 			print specific error
 
 			if free frame list is not empty (memory not full)
@@ -33,7 +32,13 @@ get the page number and hash into the TLB
 				print success message including what frame the page is loaded into
 				update TLB using FIFO if necessary
 		else
-			get frame number and update TLB using FIFO if necessary
+			reset timestamp
+			update TLB
+					if TLB full
+						use FIFO to update
+							update it by replacing old frame number at location the page number hased to with new frame number
+					else
+						update it by replacing old frame number at location the page number hased to with new frame number
 
 after processing
 print contents of the page table

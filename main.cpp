@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <stdio.h>
+#include <queue>
 
 using namespace std;
 
@@ -16,17 +17,22 @@ struct page
 	int ptFrameNum;
 };
 
-vector<int> timestamps(8);
-
-vector<page> pageTable(16);
-/*
 struct tlbPage
 {
-	int free;
+	int present;
 	int pageNum;
-	int tlbFrameNum;
-}
-*/	
+	int frameNum;
+};
+
+vector<int> timestamps(8);
+
+vector<bool> freeFrames(8);
+
+vector<page> pageTable(16);
+
+vector<tlbPage> tlb(4);
+
+queue<tlbPage> tlbQueue;
 
 char memory[8][256];
 
@@ -80,6 +86,78 @@ void printMemory()
 	}
 }
 
+int searchTLB(int p)
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		if (tlb.at(i).pageNum == p)
+		{
+			return i;
+		}
+	}
+	return 5;
+}
+
+bool checkTLBFull()
+{
+	for (int i = 0; i < 4; ++i)
+	{
+		if (tlb.at(i).present == 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void updateTLB(int frameNum, int pageNum)
+{
+	cout << "entering tlb update" << endl;
+	if(checkTLBFull())
+	{
+		// use FIFO to update
+		tlbPage newPage = tlbQueue.front();
+		tlbQueue.pop();
+
+		// update in TLB
+		for (int i = 0; i < 4; ++i)
+		{
+			if (newPage.pageNum == tlb.at(i).pageNum)
+			{
+				tlb.at(i).pageNum = pageNum;
+				tlb.at(i).frameNum = frameNum;
+			}
+		}
+
+		// update in queue
+		newPage.present = 1;
+		newPage.pageNum = pageNum;
+		newPage.frameNum = frameNum;
+		tlbQueue.push(newPage);
+	}
+	else
+	{
+		// find first open spot when TLB isn't full
+		for (int i = 0; i < 4; ++i)
+		{
+			if (tlb.at(i).present == 0)
+			{
+				// update in TLB 
+				tlb.at(i).present = 1;
+				tlb.at(i).pageNum = pageNum;
+				tlb.at(i).frameNum = frameNum;
+
+				// update in queue
+				tlbPage newPage;
+				newPage.present = 1;
+				newPage.pageNum = pageNum;
+				newPage.frameNum = frameNum;
+				tlbQueue.push(newPage);
+			}
+		}
+	}
+}
+
 int findLRUFrame()
 {
 	int maxTime = 0;
@@ -99,17 +177,9 @@ int firstFit()
 {
 	for (int i = 0; i < 8; ++i)
 	{
-		for (int j = 0; j < 256; ++j)
+		if (freeFrames.at(i))
 		{
-			// if a one is found in this frame
-			if (memory[i][j] == '1')
-			{
-				break;
-			}
-			if (j >= 255)
-			{
-				return i;
-			}
+			return i;
 		}
 	}
 	return 8;
@@ -118,9 +188,9 @@ int firstFit()
 int main()
 {
 	vector<int> vAddresses = parse("addresses.txt");
+	
 	FILE * backFile;
-	//ifstream backFile ("addresses.txt", ifstream::binary);
-	// backFile = fopen("BACKING_STORE.bin", "rb");
+	backFile = fopen("BACKING_STORE.bin", "rb");
 	// load from .bin file into this frame
 	if (!backFile)
 	{
@@ -136,138 +206,92 @@ int main()
 		// update timestamps for each reference
 		incTimestamps();
 
-		// PAGE FAULT
-		if (!pageTable.at(pageNum).present)
+		// TLB HIT
+		/*
+		int tlbIndex = searchTLB(pageNum);
+		if (tlbIndex != 5)
 		{
-			cout << "PAGE FAULT: virtual address " << addr << " contained in page " << pageNum << " caused a page fault!" << endl;
-
-			int firstFrame = firstFit();
-			if (firstFrame == 8)
-			{
-				// if no frames available, use LRU
-				int frameToReplace = findLRUFrame();
-				/*
-				char * buffer = (char*) malloc (sizeof(char) * 256);
-				backFile.seekg(256 * pageNum, backFile.beg);
-				backFile.read(buffer, 256);
-				*/
-
-				// get line from binary file with associated page number
-				
-				fseek(backFile, frameToReplace * 256, SEEK_SET);
-				char * buffer = new char [256];
-				fread(buffer, 1, 256, backFile);
-				/*
-				if(addr == 1828)
-				{
-					cout << "before mem transfer" << endl;
-					for (int i = 0; i < 256; ++i)
-					{
-						cout << memory[frameToReplace][i];
-					}
-					cout << endl;
-				}
-				*/
-				memcpy(&memory[frameToReplace], buffer, 256);
-				free (buffer);
-				// rewind(backFile);
-				/*
-				if(addr == 1828)
-				{
-					cout << "after mem transfer" << endl;
-					for (int i = 0; i < 256; ++i)
-					{
-						cout << memory[frameToReplace][i];
-					}
-					cout << endl;
-				}
-				*/
-				
-
-				cout << "page " << pageNum << " is loaded into frame " << frameToReplace << endl;
-
-				// reset that frame's timestamp to 0
-				resetTimestamp(frameToReplace);
-
-				// update page table with new frame info
-				pageTable.at(pageNum).present = 1;
-				pageTable.at(pageNum).ptFrameNum = frameToReplace;
-			}
-			else
-			{
-				// if first fit finds a frame
-				/*
-				if(addr == 1828)
-				{
-					cout << "before mem transfer" << endl;
-					for (int i = 0; i < 256; ++i)
-					{
-						cout << memory[firstFrame][i];
-					}
-					cout << endl;
-				}
-				*/
-				// get line from binary file with associated page number
-				fseek(backFile, firstFrame * 256, SEEK_SET);
-				char * buffer = new char [256];
-				fread(buffer, 1, 256, backFile);
-				memcpy(&memory[firstFrame], buffer, 256);
-				/*
-				char * buffer = (char*) malloc (sizeof(char) * 256);
-				backFile.seekg(256 * pageNum, backFile.beg);
-				backFile.read(buffer, 256);
-				memcpy(&memory[firstFrame], buffer, 256);
-				*/
-				/*
-				if(addr == 1828)
-				{
-					cout << "buffer contains these elements: " << endl;
-					for (int i = 0; i < 256; ++i)
-					{
-						cout << buffer[i];
-					}
-				cout << endl;	
-				}
-				*/
-				// memcpy(&memory[firstFrame], buffer, 256);
-				free (buffer);
-				// rewind(backFile);
-				/*
-				if(addr == 1828)
-				{
-					cout << "after mem transer" << endl;
-					for (int i = 0; i < 256; ++i)
-					{
-						cout << memory[firstFrame][i];
-					}
-				cout << endl;	
-				}
-				*/
-				
-				
-				
-
-				cout << "page " << pageNum << " is loaded into frame " << firstFrame << endl;
-
-				// update page table
-				pageTable.at(pageNum).present = 1;
-				pageTable.at(pageNum).ptFrameNum = firstFrame;
-			}
-
-
-			
-			
+			cout << "TLB HIT: page " << pageNum << " is contained in frame " << tlb.at(tlbIndex).frameNum << ", found in TLB entry " << tlbIndex << endl;
 		}
-		// PAGE IS PRESENT IN MEM
+		// TLB MISS
 		else
 		{
-			cout << "page " << pageNum << " is contained in frame " << pageTable.at(pageNum).ptFrameNum << endl;
+			cout << "TLB MISS: page " << pageNum << " is not in the TLB" << endl;
+		*/
+			// PAGE FAULT
+			if (!pageTable.at(pageNum).present)
+			{
+				cout << "PAGE FAULT: virtual address " << addr << " contained in page " << pageNum << " caused a page fault!" << endl;
 
-			// get frame number and update TLB using FIFO if necessary
-		}
+				int firstFrame = firstFit();
+
+				// MEMORY FULL, USE LRU
+				if (firstFrame == 8)
+				{
+					int frameToReplace = findLRUFrame();
+					
+					fseek(backFile, frameToReplace * 256, SEEK_SET);
+					char * buffer = new char [256];
+					fread(buffer, 1, 256, backFile);
+					memcpy(&memory[frameToReplace], buffer, 256);
+					free (buffer);					
+
+					cout << "page " << pageNum << " is loaded into frame " << frameToReplace << endl;
+
+					// reset that frame's timestamp to 0
+					resetTimestamp(frameToReplace);
+
+					// update free frame list
+					freeFrames.at(frameToReplace) = false;
+
+					// update page table with new frame info
+					pageTable.at(pageNum).present = 1;
+					pageTable.at(pageNum).ptFrameNum = frameToReplace;
+
+					// update the TLB
+					// updateTLB(frameToReplace, pageNum);
+				}
+				// FRAMES AVAILABLE
+				else
+				{
+					// get line from binary file with associated page number
+					fseek(backFile, firstFrame * 256, SEEK_SET);
+					char * buffer = new char [256];
+					fread(buffer, 1, 256, backFile);
+					memcpy(&memory[firstFrame], buffer, 256);
+					free (buffer);
+					// rewind(backFile);
+					cout << "page " << pageNum << " is loaded into frame " << firstFrame << endl;
+
+					// reset that frame's timestamp to 0
+					resetTimestamp(firstFrame);
+
+					// update free frame list
+					freeFrames.at(firstFrame) = false;
+
+					// update page table
+					pageTable.at(pageNum).present = 1;
+					pageTable.at(pageNum).ptFrameNum = firstFrame;
+
+					// UPDATE TLB
+
+					// updateTLB(firstFrame, pageNum);
+				}
+
+			}
+			// NO PAGE FAULT
+			else
+			{
+				resetTimestamp(pageTable.at(pageNum).ptFrameNum);
+				cout << "page " << pageNum << " is contained in frame " << pageTable.at(pageNum).ptFrameNum << endl;
+
+				// update TLB
+				// updateTLB(tlb.at(tlbIndex).frameNum, pageNum);
+			}
+			cout << endl;
+		//}
 	}
 	fclose(backFile);
-	printMemory();
 	//backFile.close();
 
 	// print contents of page table
