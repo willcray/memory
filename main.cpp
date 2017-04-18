@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <queue>
+#include <cstring>
 
 using namespace std;
 
