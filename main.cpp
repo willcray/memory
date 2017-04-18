@@ -30,6 +30,9 @@ vector<page> pageTable(16);
 vector<tlbPage> tlb(4);
 queue<tlbPage> tlbQueue;
 
+int TLBHits = 0;
+int pageFaults = 0;
+
 char memory[8][256];
 
 vector<int> parse(string fileName)
@@ -173,6 +176,17 @@ int findLRUFrame()
 	return LRUFrame;
 }
 
+void updatePageTable(int frame)
+{
+	for (int i = 0; i < pageTable.size(); ++i)
+	{
+		if(pageTable.at(i).ptFrameNum == frame)
+		{
+			pageTable.at(i).present = 0;
+		}
+	}
+}
+
 int firstFit()
 {
 	for (int i = 0; i < 8; ++i)
@@ -212,6 +226,7 @@ int main()
 		{
 			cout << "TLB HIT: page " << pageNum << " is contained in frame " << tlb.at(tlbIndex).frameNum << ", found in TLB entry " << tlbIndex << endl;
 			resetTimestamp(tlb.at(tlbIndex).frameNum);
+			++TLBHits;
 		}
 		// TLB MISS
 		else
@@ -245,6 +260,7 @@ int main()
 					freeFrames.at(frameToReplace) = false;
 
 					// update page table with new frame info
+					updatePageTable(frameToReplace);
 					pageTable.at(pageNum).present = 1;
 					pageTable.at(pageNum).ptFrameNum = frameToReplace;
 
@@ -274,10 +290,9 @@ int main()
 					pageTable.at(pageNum).ptFrameNum = firstFrame;
 
 					// UPDATE TLB
-
 					updateTLB(firstFrame, pageNum);
 				}
-
+				++pageFaults;
 			}
 			// NO PAGE FAULT
 			else
@@ -293,11 +308,40 @@ int main()
 	fclose(backFile);
 
 	cout << "Total address references: " << vAddresses.size() << endl;
-	cout << "TLB Hits: ";
-	// print contents of page table
-	// print contents of page frames
-	// print page-fault rate
-	// print TLB hit rate
+	cout << "TLB Hits: " << TLBHits << endl;
+	double hitRatio = ((double)TLBHits) / vAddresses.size();
+	cout << "TLB Hit Ratio: " << hitRatio << endl;
+	cout << "Page Faults: " << pageFaults << endl << endl;
+
+	cout << "The contents of the page table after simulation:" << endl;
+	for (int i = 0; i < pageTable.size(); ++i)
+	{
+		if (pageTable.at(i).present)
+		{
+			cout << "Page " << i << " in frame " << pageTable.at(i).ptFrameNum << endl;
+		}
+		else
+		{
+			cout << "Page " << i << " not in physical memory" << endl;
+		}
+	}
+	cout << endl;
+	cout << "The contents of each frame:" << endl;
+	for (int i = 0; i < 8; ++i)
+	{
+		for (int j = 0; j < pageTable.size(); ++j)
+		{
+			if(pageTable.at(j).ptFrameNum == i && pageTable.at(j).present)
+			{
+				cout << "Frame " << i << " contains page " << j;
+			}
+		}
+		if (i != 7)
+		{
+			cout << endl;
+		}
+	}
+
 
 	return 0;
 }
