@@ -1,0 +1,90 @@
+TLB MISS: page 3 is not in the TLB
+PAGE FAULT: virtual address 783 contained in page 3 caused a page fault!
+LOADED: page 3 is loaded into frame 0
+TLB LOAD: frame 0 containing page 3 is stored in TLB entry 0
+
+TLB MISS: page 11 is not in the TLB
+PAGE FAULT: virtual address 2872 contained in page 11 caused a page fault!
+LOADED: page 11 is loaded into frame 1
+TLB LOAD: frame 1 containing page 11 is stored in TLB entry 1
+
+TLB HIT: page 3 is contained in frame 0, found in TLB entry 0
+
+TLB MISS: page 8 is not in the TLB
+PAGE FAULT: virtual address 2159 contained in page 8 caused a page fault!
+LOADED: page 8 is loaded into frame 2
+TLB LOAD: frame 2 containing page 8 is stored in TLB entry 2
+
+TLB MISS: page 5 is not in the TLB
+PAGE FAULT: virtual address 1348 contained in page 5 caused a page fault!
+LOADED: page 5 is loaded into frame 3
+TLB LOAD: frame 3 containing page 5 is stored in TLB entry 3
+
+TLB MISS: page 14 is not in the TLB
+PAGE FAULT: virtual address 3747 contained in page 14 caused a page fault!
+LOADED: page 14 is loaded into frame 4
+TLB LOAD: frame 4 containing page 14 is stored in TLB entry 0
+
+TLB HIT: page 8 is contained in frame 2, found in TLB entry 2
+
+TLB MISS: page 2 is not in the TLB
+PAGE FAULT: virtual address 612 contained in page 2 caused a page fault!
+LOADED: page 2 is loaded into frame 5
+TLB LOAD: frame 5 containing page 2 is stored in TLB entry 1
+
+TLB MISS: page 9 is not in the TLB
+PAGE FAULT: virtual address 2419 contained in page 9 caused a page fault!
+LOADED: page 9 is loaded into frame 6
+TLB LOAD: frame 6 containing page 9 is stored in TLB entry 2
+
+TLB MISS: page 10 is not in the TLB
+PAGE FAULT: virtual address 2637 contained in page 10 caused a page fault!
+LOADED: page 10 is loaded into frame 7
+TLB LOAD: frame 7 containing page 10 is stored in TLB entry 3
+
+TLB MISS: page 5 is not in the TLB
+FOUND: page 5 is contained in frame 3
+TLB LOAD: frame 3 containing page 5 is stored in TLB entry 0
+
+TLB MISS: page 4 is not in the TLB
+PAGE FAULT: virtual address 1223 contained in page 4 caused a page fault!
+LOADED: page 4 is loaded into frame 1
+TLB LOAD: frame 1 containing page 4 is stored in TLB entry 1
+
+TLB MISS: page 7 is not in the TLB
+PAGE FAULT: virtual address 1828 contained in page 7 caused a page fault!
+LOADED: page 7 is loaded into frame 0
+TLB LOAD: frame 0 containing page 7 is stored in TLB entry 2
+
+Total address references: 13
+TLB Hits: 2
+TLB Hit Ratio: 0.153846
+Page Faults: 10
+
+The contents of the page table after simulation:
+Page 0 not in physical memory
+Page 1 not in physical memory
+Page 2 in frame 5
+Page 3 not in physical memory
+Page 4 in frame 1
+Page 5 in frame 3
+Page 6 not in physical memory
+Page 7 in frame 0
+Page 8 in frame 2
+Page 9 in frame 6
+Page 10 in frame 7
+Page 11 not in physical memory
+Page 12 not in physical memory
+Page 13 not in physical memory
+Page 14 in frame 4
+Page 15 not in physical memory
+
+The contents of each frame:
+Frame 0 contains page 7
+Frame 1 contains page 4
+Frame 2 contains page 8
+Frame 3 contains page 5
+Frame 4 contains page 14
+Frame 5 contains page 2
+Frame 6 contains page 9
+Frame 7 contains page 10
